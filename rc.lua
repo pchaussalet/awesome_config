@@ -180,82 +180,6 @@ mytasklist.buttons = awful.util.table.join(
 mysep = widget({ type = "textbox", align = "right" })
 mysep.text = " | "
 
- binaryclock = {}
- binaryclock.widget = widget({type = "imagebox"})
- binaryclock.w = 51 --width 
- binaryclock.h = 24 --height (better to be a multiple of 6) 
- --dont forget that awesome resizes our image with clocks to fit wibox's height
- binaryclock.show_sec = true --must we show seconds? 
- binaryclock.color_active = beautiful.bg_focus --active dot color
- binaryclock.color_bg = beautiful.bg_normal --background color
- binaryclock.color_inactive = beautiful.fg_focus --inactive dot color
- binaryclock.dotsize = math.floor(binaryclock.h / 6) --dot size
- binaryclock.step = math.floor(binaryclock.dotsize / 2) --whitespace between dots
- binaryclock.widget.image = image.argb32(binaryclock.w, binaryclock.h, nil) --create image
- if (binaryclock.show_sec) then binaryclock.timeout = 1 else binaryclock.timeout = 20 end --we don't need to update often
- binaryclock.DEC_BIN = function(IN) --thanx to Lostgallifreyan (http://lua-users.org/lists/lua-l/2004-09/msg00054.html)
-     local B,K,OUT,I,D=2,"01","",0
-     while IN>0 do
-         I=I+1
-         IN,D=math.floor(IN/B),math.mod(IN,B)+1
-         OUT=string.sub(K,D,D)..OUT
-     end
-     return OUT
- end
- binaryclock.paintdot = function(val,shift,limit) --paint number as dots with shift from left side
-       local binval = binaryclock.DEC_BIN(val)
-       local l = string.len(binval)
-       local height = 0 --height adjustment, if you need to lift dots up
-       if (l < limit) then
-              for i=1,limit - l do binval = "0" .. binval end
-       end
-       for i=0,limit-1 do
-              if (string.sub(binval,limit-i,limit-i) == "1") then
-                    binaryclock.widget.image:draw_rectangle(shift,  binaryclock.h - binaryclock.dotsize - height, binaryclock.dotsize, binaryclock.dotsize, true, binaryclock.color_active)
-              else
-                    binaryclock.widget.image:draw_rectangle(shift,  binaryclock.h - binaryclock.dotsize - height, binaryclock.dotsize,binaryclock.dotsize, true, binaryclock.color_inactive)
-              end
-              height = height + binaryclock.dotsize + binaryclock.step
-        end
- end
- binaryclock.drawclock = function () --get time and send digits to paintdot()
-       binaryclock.widget.image:draw_rectangle(0, 0, binaryclock.w, binaryclock.h, true, binaryclock.color_bg) --fill background
-       local t = os.date("*t")
-       local hour = t.hour
-       if (string.len(hour) == 1) then
-              hour = "0" .. t.hour
-       end
-       local min = t.min
-       if (string.len(min) == 1) then
-              min = "0" .. t.min
-       end
-       local sec = t.sec
-       if (string.len(sec) == 1) then
-              sec = "0" .. t.sec
-       end
-       local col_count = 6
-       if (not binaryclock.show_sec) then col_count = 4 end
-       local step = math.floor((binaryclock.w - col_count * binaryclock.dotsize) / 8) --calc horizontal whitespace between cols
-       binaryclock.paintdot(0 + string.sub(hour, 1, 1), step, 2)
-       binaryclock.paintdot(0 + string.sub(hour, 2, 2), binaryclock.dotsize + 2 * step, 4)
-       binaryclock.paintdot(0 + string.sub(min, 1, 1),binaryclock.dotsize * 2 + 4 * step, 3)
-       binaryclock.paintdot(0 + string.sub(min, 2, 2),binaryclock.dotsize * 3 + 5 * step, 4)
-       if (binaryclock.show_sec) then
-              binaryclock.paintdot(0 + string.sub(sec, 1, 1), binaryclock.dotsize * 4 + 7 * step, 3)
-              binaryclock.paintdot(0 + string.sub(sec, 2, 2), binaryclock.dotsize * 5 + 8 * step, 4)
-       end
-       binaryclock.widget.image = binaryclock.widget.image
-   end
-
- binarytimer = timer { timeout = binaryclock.timeout } --register timer
-   binarytimer:add_signal("timeout", function()
-       binaryclock.drawclock()
-   end)
---   binarytimer:start()--start timer
-
-
-
-
 mycpuinfo = widget({ type = "textbox", align = "right" })
 function activecpu()
     local s = ""
@@ -294,14 +218,14 @@ mymeminfo.text = activeram()
 mybattmon = widget({ type = "textbox", name = "mybattmon", align = "right" })
 function battery_status ()
     local output={} --output buffer
-    local fd=io.popen("acpitool -b", "r") --list present batteries
+    local fd=io.popen("acpi -b", "r") --list present batteries
     local line=fd:read()
     while line do --there might be several batteries.
-        local battery_num = string.match(line, "Battery \#(%d+)")
-        local battery_load = string.match(line, " (%d*)\.(%d+)%%")
+        local battery_num = string.match(line, "Battery (%d+)")
+        local battery_load = string.match(line, " (%d*)%%")
         local time_rem = string.match(line, "(%d+\:%d+)\:%d+")
   local discharging
-  if string.match(line, "discharging")=="discharging" then --discharging: always red
+  if string.match(line, "Discharging")=="Discharging" then --discharging: always red
     if tonumber(battery_load)<10 then
       discharging="<span color=\"#FF0000\">"
     else
@@ -315,7 +239,7 @@ function battery_status ()
         if battery_num and battery_load and time_rem then
             table.insert(output,discharging.."BAT#"..battery_num.." "..battery_load.."% "..time_rem.."</span>")
         elseif battery_num and battery_load then --remaining time unavailable
-            table.insert(output,discharging.."BAT#"..battery_num.." "..battery_load.."%%</span>")
+            table.insert(output,discharging.."BAT#"..battery_num.." "..battery_load.."%</span>")
         end --even more data unavailable: we might be getting an unexpected output format, so let's just skip this line.
         line=fd:read() --read next line
     end
@@ -336,6 +260,27 @@ tb_volume:buttons({
   button({ }, 1, function () volume("mute", tb_volume) end)
 })
 volume("update", tb_volume)
+
+freqmon = widget({type = "textbox", name = "freqmon", align = "right"})
+function freq_status ()
+  local fd = io.popen("cpufreq-info -m -c0 -f", "r")
+  local line = fd:read()
+  return string.match(line, "(.+) GHz")
+end
+awful.hooks.timer.register(10, function() freqmon.text = freq_status() end)
+freqmon.text = freq_status()
+
+policymon = widget({type = "textbox", name = "policymon", align = "right"})
+function policy_status ()
+  local fd = io.popen("cpufreq-info -m -c0 -p", "r")
+  local line = fd:read()
+  local min_f, max_f, policy = string.match(line, "(%d+) (%d+) (.+)")
+  min_f = math.ceil(min_f/10000)/100
+  max_f = math.ceil(max_f/10000)/100
+  return "" .. min_f .. "-" .. max_f .. " " .. policy
+end
+awful.hooks.timer.register(10, function() policymon.text = policy_status() end)
+policymon.text = policy_status()
 
 
 for s = 1, screen.count() do
@@ -377,7 +322,11 @@ for s = 1, screen.count() do
         mysep,
         mycpuinfo,
         mysep,
-        mybattmon,  
+        mybattmon,
+        mysep,
+        freqmon,
+        mysep,
+        policymon,
         s == 1 and mysystray or nil,
         mytasklist[s],
         layout = awful.widget.layout.horizontal.rightleft
