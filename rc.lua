@@ -1,17 +1,5 @@
-cardid  = 0
+cardid = 0
 channel = "Master"
-
-function getChannelStatus(chan)
-    local fd = io.popen("amixer -c " .. cardid .. " -- sget " .. chan)
-    local status = fd:read("*all")
-    fd:close()
-    
-    if string.find(status, "[on]", 1, true) then
-      return "on"
-    else
-      return "off"
-    end
-end
 
 function volume (mode, widget)
   if mode == "update" then
@@ -30,20 +18,13 @@ function volume (mode, widget)
       volume = "M"
     end
     widget.text = volume
-  elseif mode == "up" then
-    io.popen("amixer -q -c " .. cardid .. " sset " .. channel .. " 5%+"):read("*all")
-    volume("update", widget)
-  elseif mode == "down" then
-    io.popen("amixer -q -c " .. cardid .. " sset " .. channel .. " 5%-"):read("*all")
-    volume("update", widget)
   else
-    io.popen("amixer -c " .. cardid .. " sset " .. channel .. " toggle"):read("*all")
-    local channelStatus = getChannelStatus(channel)
-    for i,chan in ipairs({"Front", "Headphone"}) do
-      local chanStatus = getChannelStatus(chan)
-      if chanStatus ~= channelStatus then
-        io.popen("amixer -c " .. cardid .. " sset " .. chan .. " toggle"):read("*all")
-      end
+    if mode == "up" then
+      io.popen("amixer -q -c " .. cardid .. " sset " .. channel .. " 5%+"):read("*all")
+    elseif mode == "down" then
+      io.popen("amixer -q -c " .. cardid .. " sset " .. channel .. " 5%-"):read("*all")
+    else
+      io.popen("amixer sset Master toggle"):read("*all")
     end
     volume("update", widget)
   end
@@ -67,8 +48,8 @@ beautiful.init("/home/pchaussalet/.config/awesome/aurantium/theme.lua")
 
 -- This is used later as the default terminal and editor to run.
 -- terminal = "x-terminal-emulator"
--- terminal = "urxvt"
-terminal = "terminator"
+terminal = "urxvt"
+-- terminal = "terminator"
 editor = os.getenv("EDITOR") or "editor"
 editor_cmd = terminal .. " -e " .. editor
 
@@ -221,27 +202,27 @@ function battery_status ()
     local fd=io.popen("acpi -b", "r") --list present batteries
     local line=fd:read()
     while line do --there might be several batteries.
-        local battery_num = string.match(line, "Battery (%d+)")
-        local battery_load = string.match(line, " (%d*)%%")
-        local time_rem = string.match(line, "(%d+\:%d+)\:%d+")
-  local discharging
-  if string.match(line, "Discharging")=="Discharging" then --discharging: always red
-    if tonumber(battery_load)<10 then
-      discharging="<span color=\"#FF0000\">"
-    else
-      discharging="<span color=\"#FFFFFF\">"
-    end
-  elseif tonumber(battery_load)>85 then --almost charged
-    discharging="<span color=\"#00CC00\">"
-  else --charging
-    discharging="<span color=\"#FF6600\">"
-  end
-        if battery_num and battery_load and time_rem then
-            table.insert(output,discharging.."BAT#"..battery_num.." "..battery_load.."% "..time_rem.."</span>")
-        elseif battery_num and battery_load then --remaining time unavailable
-            table.insert(output,discharging.."BAT#"..battery_num.." "..battery_load.."%</span>")
-        end --even more data unavailable: we might be getting an unexpected output format, so let's just skip this line.
-        line=fd:read() --read next line
+      local battery_num = string.match(line, "Battery (%d+)")
+      local battery_load = string.match(line, " (%d*)%%")
+      local time_rem = string.match(line, "(%d+\:%d+)\:%d+")
+      local discharging
+      if string.match(line, "Discharging")=="Discharging" then --discharging: always red
+        if tonumber(battery_load)<10 then
+          discharging="<span color=\"#FF0000\">"
+        else
+          discharging="<span color=\"#FFFFFF\">"
+        end
+      elseif tonumber(battery_load)>85 then --almost charged
+        discharging="<span color=\"#00CC00\">"
+      else --charging
+        discharging="<span color=\"#FF6600\">"
+      end
+      if battery_num and battery_load and time_rem then
+        table.insert(output,discharging.."BAT#"..battery_num.." "..battery_load.."% "..time_rem.."</span>")
+      elseif battery_num and battery_load then --remaining time unavailable
+        table.insert(output,discharging.."BAT#"..battery_num.." "..battery_load.."%</span>")
+      end --even more data unavailable: we might be getting an unexpected output format, so let's just skip this line.
+      line=fd:read() --read next line
     end
     return table.concat(output," ") --FIXME: better separation for several batteries. maybe a pipe?
 end
@@ -265,7 +246,7 @@ freqmon = widget({type = "textbox", name = "freqmon", align = "right"})
 function freq_status ()
   local fd = io.popen("cpufreq-info -m -c0 -f", "r")
   local line = fd:read()
-  return string.match(line, "(.+) GHz")
+  return string.match(line, "(.+) [MG]Hz")
 end
 awful.hooks.timer.register(10, function() freqmon.text = freq_status() end)
 freqmon.text = freq_status()
@@ -282,6 +263,22 @@ end
 awful.hooks.timer.register(10, function() policymon.text = policy_status() end)
 policymon.text = policy_status()
 
+tempmon = widget({type = "textbox", name = "tempmon", align = "right"})
+function temp_status ()
+  local output = {}
+  local fd = io.popen("sensors -A", "r")
+  local line = fd:read()
+  while line do
+    local temp = string.match(line, "\+(%d+)")
+    if temp then
+      table.insert(output, temp .. "°C")
+    end
+    line = fd:read()
+  end
+  return table.concat(output, " ")
+end
+awful.hooks.timer.register(10, function() tempmon.text = temp_status() end)
+tempmon.text = temp_status()
 
 for s = 1, screen.count() do
     -- Create a promptbox for each screen
@@ -313,7 +310,6 @@ for s = 1, screen.count() do
             layout = awful.widget.layout.horizontal.leftright
         },
         mylayoutbox[s],
---        binaryclock.widget,
         mytextclock,
         mysep,
         tb_volume,
@@ -327,6 +323,8 @@ for s = 1, screen.count() do
         freqmon,
         mysep,
         policymon,
+        mysep,
+        tempmon,
         s == 1 and mysystray or nil,
         mytasklist[s],
         layout = awful.widget.layout.horizontal.rightleft
