@@ -8,23 +8,24 @@ theme = {}
 -- theme.wallpaper_cmd = { "awsetbg -t /home/pchaussalet/Pictures/backgrounds/fight_club/78790.jpg" }
 -- theme.wallpaper_cmd = { "awsetbg -t /home/pchaussalet/Pictures/backgrounds/abstracts/wallpaper-446338_resized.png" }
 -- theme.wallpaper_cmd = { "awsetbg -t /home/pchaussalet/Pictures/backgrounds/drone2.png" }
-theme.wallpaper_cmd = { "feh --bg-fill /home/pchaussalet/Pictures/backgrounds/fight_club/78790.jpg /home/pchaussalet/Pictures/backgrounds/fight_club/114029.jpg" }
+theme.wallpaper_cmd = { "feh --bg-fill /home/pchaussalet/pictures/bg1 /home/pchaussalet/pictures/bg2" }
 
-theme.font          = "fixed 8"
+-- theme.font          = "fixed 8"
+theme.font          = "DejaVu Sans Mono 8"
 
 theme.bg_normal     = "#000000"
 theme.bg_focus      = "#000000"
 theme.bg_urgent     = "#000000"
 theme.bg_minimize   = "#000000"
 
-theme.fg_normal     = "#eeeeee"
+theme.fg_normal     = "#ffffff"
 theme.fg_focus      = "#ff6600"
 theme.fg_urgent     = "#0099FF"
 theme.fg_minimize  =  "#888888"
 
 theme.border_width  = 0
-theme.border_normal = "#000000"
-theme.border_focus  = "#888888"
+theme.border_normal = "#222222"
+theme.border_focus  = "#999999"
 theme.border_marked = "#ff6600"
 
 -- There are other variable sets
