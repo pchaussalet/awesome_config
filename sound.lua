@@ -26,7 +26,7 @@ function set_volume(volume)
 end
 
 function volume_status()
-  local stdout = io.popen("pactl list sinks |sed 's/\t//' |egrep '^Mute|^Volume'")
+  local stdout = io.popen("pactl list sinks |sed 's/\t//' |egrep '^Mute|^Volume|^State' |grep -A2 'RUNNING'")
   local status = stdout:read("*all")
   stdout:close()
 
